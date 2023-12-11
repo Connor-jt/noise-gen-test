@@ -3,7 +3,7 @@ use web_sys::{console, ImageData};
 use wasm_bindgen::Clamped;
 use std::mem::MaybeUninit;
 
-use noise::{NoiseFn, Perlin, Seedable};
+use noise::{NoiseFn, SuperSimplex, Seedable};
 
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
@@ -23,7 +23,7 @@ pub fn main_js() -> Result<(), JsValue> {
         let canvas = CANVAS.assume_init_ref(); // apparently .as_ptr().read() destroys the reference?
         CONTEXT = MaybeUninit::new(canvas.get_context("2d").unwrap().unwrap().dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap());
         // setup perlin noise
-        PERLIN = MaybeUninit::new(Perlin::new(15125324));
+        NOISE = MaybeUninit::new(SuperSimplex::new(15125324));
         // load it in, in a default state
         redraw_canvas(0.0, 0.0, 0.0);
     }
@@ -35,7 +35,7 @@ pub fn main_js() -> Result<(), JsValue> {
 // global/cached variables
 static mut CANVAS: MaybeUninit<web_sys::HtmlCanvasElement> = MaybeUninit::uninit();
 static mut CONTEXT: MaybeUninit<web_sys::CanvasRenderingContext2d> = MaybeUninit::uninit();
-static mut PERLIN: MaybeUninit<Perlin> = MaybeUninit::uninit();
+static mut NOISE: MaybeUninit<SuperSimplex> = MaybeUninit::uninit();
 
 // have whatever parameters inserted there
 #[wasm_bindgen]
@@ -45,7 +45,7 @@ pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64){
         console::log_1(&JsValue::from_str("canvas/context uninitalized when drawing!!"));
         return
     }
-    if PERLIN.as_mut_ptr().is_null(){
+    if NOISE.as_mut_ptr().is_null(){
         console::log_1(&JsValue::from_str("canvas/context uninitalized when drawing!!"));
         return
     }
@@ -79,13 +79,6 @@ pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64){
     let values_debug = format!("truncated value: {}, regular value: {}", vartest, vartest2);
     console::log_1(&JsValue::from_str(&values_debug));
 
-    let perlin = Perlin::new(1);
-    let val1 = perlin.get([1.0, 0.0, 0.0]);
-    let val2 = perlin.get([2.0, 1.3, 0.0]);
-    let val3 = perlin.get([1.6, 1.0, 0.0]);
-    let value_debug: String = format!("test: {}, {}, {}", val1, val2, val3);
-    console::log_1(&JsValue::from_str(&value_debug));
-
     let slice_data = Clamped(&new_pixels[..]);
     let img_data_edited = ImageData::new_with_u8_clamped_array(slice_data, canvas_width).unwrap();
     let among: Result<(), JsValue> = context.put_image_data(&img_data_edited, 0.0, 0.0);
@@ -94,9 +87,38 @@ pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64){
 
 
 
-const noise_scale:f64 = 0.02;
+const NOISE_SCALE:f64 = 0.03;
 fn get_noise_at(x:f64, y:f64, z:f64) -> f64{
-    let perlin = unsafe { PERLIN.assume_init_ref()};
-    return perlin.get([x*noise_scale+0.5,y*noise_scale+0.5,z*noise_scale+0.5]);
+    let noise_gen = unsafe { NOISE.assume_init_ref()};
+    return (noise_gen.get([x*NOISE_SCALE+0.5,y*NOISE_SCALE+0.5,z*NOISE_SCALE+0.5]) + 1.0) / 2.0;
     //return 1.0;
+    /*
+        local height_max = 16
+        local height_min = 1
+        local amplitude_max = height_max / 2
+        local frequency_max = 0.050
+        local octaves = 2
+        local lacunarity = 2
+        local persistence = 0.5
+
+        local input = { a = false, f = false, o = false, l = false, p = false }
+        local seed
+
+
+        local noise = height_max / 2
+        local frequency = frequency_max
+        local amplitude = amplitude_max
+        for k = 1, octaves do
+            local sample_x = j * frequency + offset_x
+            local sample_y = i * frequency + offset_y
+            noise = noise + simplex.Noise2D(sample_x, sample_y) * amplitude
+            frequency = frequency * lacunarity
+            amplitude = amplitude * persistence
+        end
+        noise = util.clamp(height_min, height_max, util.round(noise))
+        grid[i][j] = noise
+    
+    
+    
+     */
 }
