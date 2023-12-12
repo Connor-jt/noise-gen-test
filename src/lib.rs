@@ -22,10 +22,9 @@ pub fn main_js() -> Result<(), JsValue> {
         CANVAS = MaybeUninit::new(canvas1.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| ()).unwrap());
         let canvas = CANVAS.assume_init_ref(); // apparently .as_ptr().read() destroys the reference?
         CONTEXT = MaybeUninit::new(canvas.get_context("2d").unwrap().unwrap().dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap());
-        // setup perlin noise
-        NOISE = MaybeUninit::new(SuperSimplex::new(15125324));
+        
         // load it in, in a default state
-        redraw_canvas(0.0, 0.0, 0.0);
+        //redraw_canvas(0.0, 0.0, 0.0, 0.005, 8, 2.0, 0.5, 1000);
     }
     Ok(())
 }
@@ -39,7 +38,7 @@ static mut NOISE: MaybeUninit<SuperSimplex> = MaybeUninit::uninit();
 
 // have whatever parameters inserted there
 #[wasm_bindgen]
-pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64){
+pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64, _frequency_max:f64, _octaves:f64, _lacunarity:f64, _persistence:f64, seed:f64){
     // test whether either are uninitialized
     if CANVAS.as_mut_ptr().is_null() || CONTEXT.as_mut_ptr().is_null(){
         console::log_1(&JsValue::from_str("canvas/context uninitalized when drawing!!"));
@@ -55,6 +54,16 @@ pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64){
     let canvas_width = canvas.width();
     let canvas_height = canvas.height();
 
+    // process in all the new parameters
+    frequency_max = _frequency_max;
+    octaves = _octaves as i32;
+    lacunarity = _lacunarity;
+    persistence = _persistence;
+    max_height = (1.0 + (persistence * 2.0)) - persistence.powi(octaves - 1); // blessed be the brain, unblessed be the language
+    // apply seed to noise
+    NOISE = MaybeUninit::new(SuperSimplex::new(seed as u32));
+
+
     // old method
     //let img_data = ImageData::new_with_sw(canvas_width, canvas_height).unwrap();
     //let mut pixels = img_data.data();
@@ -64,7 +73,7 @@ pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64){
     for x in 0..canvas_width{
         for y in 0..canvas_height{
             let byte_offset = (((y * canvas_width) + x) * 4) as usize;
-            let noise_float: f64 = get_noise_at(f64::from(x),f64::from(y), 0.0);
+            let noise_float: f64 = get_noise_at(pos_x + f64::from(x), pos_y +f64::from(y), pos_z);
             let noise_value = (noise_float * 255.0) as u8;
 
             vartest += noise_value as u32;
@@ -87,38 +96,27 @@ pub unsafe fn redraw_canvas(pos_x:f64, pos_y:f64, pos_z:f64){
 
 
 
-const NOISE_SCALE:f64 = 0.03;
+static mut frequency_max:f64 = 0.005; // the scale of the noise
+static mut octaves:i32 = 8; // amount of layers of noise
+static mut lacunarity:f64 = 2.0; // frequency increase per octaves
+static mut persistence:f64 = 0.5; // height influence decrease per octave
+
+static mut max_height:f64 = 1.0; 
+
 fn get_noise_at(x:f64, y:f64, z:f64) -> f64{
     let noise_gen = unsafe { NOISE.assume_init_ref()};
-    return (noise_gen.get([x*NOISE_SCALE+0.5,y*NOISE_SCALE+0.5,z*NOISE_SCALE+0.5]) + 1.0) / 2.0;
-    //return 1.0;
-    /*
-        local height_max = 16
-        local height_min = 1
-        local amplitude_max = height_max / 2
-        local frequency_max = 0.050
-        local octaves = 2
-        local lacunarity = 2
-        local persistence = 0.5
 
-        local input = { a = false, f = false, o = false, l = false, p = false }
-        local seed
-
-
-        local noise = height_max / 2
-        local frequency = frequency_max
-        local amplitude = amplitude_max
-        for k = 1, octaves do
-            local sample_x = j * frequency + offset_x
-            local sample_y = i * frequency + offset_y
-            noise = noise + simplex.Noise2D(sample_x, sample_y) * amplitude
-            frequency = frequency * lacunarity
-            amplitude = amplitude * persistence
-        end
-        noise = util.clamp(height_min, height_max, util.round(noise))
-        grid[i][j] = noise
-    
-    
-    
-     */
-}
+    let mut curr_noise = 0.0;
+    let mut amplitude = 1.0;
+    unsafe{
+        let mut frequency = frequency_max;
+        for octave in 0..octaves{
+            let sample_x = x * frequency;
+            let sample_y = y * frequency;
+            let sample_z = z * frequency;
+            curr_noise += 1.0; // ((noise_gen.get([sample_x,sample_y,sample_z]) + 1.0) / 2.0) * amplitude;
+            frequency *= lacunarity;
+            amplitude *= persistence;
+        }
+        return (curr_noise/max_height).clamp(0.0, 1.0); // we clamp just in case
+}}

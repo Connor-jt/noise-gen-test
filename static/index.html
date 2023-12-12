@@ -7,27 +7,51 @@
   </head>
   <body style="background-color:#1c87c9;">
     <p>start test</p>
-    <canvas id="canvas" width="300" height="300">
+    <canvas id="canvas" width="64" height="64">
     </canvas>
 
     <div>
-      <span>X: {NULL}</span> 
-      <input type="range" id="slider_x" min="0" max="100" value="50">
-      <input type="checkbox" id="check_y">
+      <span>X</span> 
+      <input type="range" id="x_slider" min="-50" max="50" step="0.5" value="0">
+      <span id="x">{NULL}</span> 
+    </div>
+    <div>
+      <span>Y</span> 
+      <input type="range" id="y_slider" oninput="change_crdy(this.value)" min="-50" max="50" step="0.5" value="0">
+      <span id="y">{NULL}</span> 
+    </div>
+    <div>
+      <span>Z</span> 
+      <input type="range" id="z_slider" oninput="change_crdz(this.value)" min="-50" max="50" step="0.5" value="0">
+      <span id="z">{NULL}</span> 
     </div>
 
     <div>
-      <span>Y: {NULL}</span> 
-      <input type="range" id="slider_y" min="0" max="100" value="50">
-      <input type="checkbox" id="check_y">
+      <span>Frequency</span> 
+      <input type="range" id="freq_slider" oninput="change_freq(this.value)" min="0.0005" max="0.0505" step="0.0005" value="0.005">
+      <span id="freq">{NULL}</span> 
+    </div>
+    <div>
+      <span>octaves</span> 
+      <input type="range" id="octs_slider" oninput="change_octs(this.value)" min="1" max="16" step="1" value="3">
+      <span id="octs">{NULL}</span> 
+    </div>
+    <div>
+      <span>lacunarity</span> 
+      <input type="range" id="lacu_slider" oninput="change_lacu(this.value)" min="1.1" max="10.1" step="0.1" value="2.0">
+      <span id="lacu">{NULL}</span> 
+    </div>
+    <div>
+      <span>persistence</span> 
+      <input type="range" id="pers_slider" oninput="change_pers(this.value)" min="0.00" max="1.00" step="0.01" value="0.5">
+      <span id="pers">{NULL}</span> 
     </div>
 
     <div>
-      <span>Z: {NULL}</span> 
-      <input type="range" id="slider_z" min="0" max="100" value="50">
-      <input type="checkbox" id="check_y">
+      <span>seed</span> 
+      <input type="range" id="seed_slider" oninput="change_seed(this.value)" min="0" max="100" step="1" value="35">
+      <span id="seed">{NULL}</span> 
     </div>
-
 
     <script src="index.js"></script>
   </body>
