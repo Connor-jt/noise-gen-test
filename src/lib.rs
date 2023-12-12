@@ -125,6 +125,7 @@ fn get_noise_at(x:f64, y:f64, z:f64) -> f64{
             let sample_z = z * frequency;
             //curr_noise += ((noise_gen.get([sample_x,sample_y,sample_z]) + 1.0) / 2.0) * amplitude;
             curr_noise += ((noise_gen.get_noise_3d(sample_x as f32,sample_y as f32,sample_z as f32) + 1.0) / 2.0) as f64 * amplitude;
+            //curr_noise += 1.0;
             frequency *= lacunarity;
             amplitude *= persistence;
         }
