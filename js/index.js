@@ -46,11 +46,16 @@ var seed = 35;
 var seed_elem = document.getElementById("seed");
 var seed_slider_elem = document.getElementById("seed_slider");
 
+var time_elem = document.getElementById("time_span");
+
 function reload_noise(){
     console.log("values updated !!")
     update_values();
     // then time how long it takes
+    var start = performance.now();
     redraw_canvas(x, y, z, frequency, octaves, lacunarity, persistence, seed);
+    var end = performance.now();
+    time_elem.innerText = (end - start).toString() + " ms";
 }
 
 function change_crdx() {x = x_slider_elem.value; reload_noise();}
@@ -79,4 +84,5 @@ lacu_slider_elem.oninput = change_lacu;
 pers_slider_elem.oninput = change_pers;
 
 seed_slider_elem.oninput = change_seed;
+
 
